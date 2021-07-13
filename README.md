@@ -1,3 +1,15 @@
+This repository contains the adjustments, that need to be taken care of, in order to run the slt project on the DFKI slurm cluster. 
+
+Changed: 
+requirements.txt
+sign.yaml
+
+Added:
+install.sh
+run.sh
+
+=======================================================================
+
 # Sign Language Transformers (CVPR'20)
 
 This repo contains the training and evaluation code for the paper [Sign Language Transformers: Sign Language Transformers: Joint End-to-end Sign Language Recognition and Translation](https://www.cihancamgoz.com/pub/camgoz2020cvpr.pdf). 
