@@ -1,6 +1,6 @@
 name: sign_experiment
 data:
-    data_path: ./data/
+    data_path: /data/PhoenixEmbedding
     version: phoenix_2014_trans
     sgn: sign
     txt: text
@@ -50,7 +50,7 @@ training:
     reset_scheduler: false
     reset_optimizer: false
     random_seed: 42
-    model_dir: "./sign_sample_model"
+    model_dir: "netscratch/hufe/slt/models"
     recognition_loss_weight: 1.0
     translation_loss_weight: 1.0
     eval_metric: bleu
