@@ -1,11 +1,19 @@
 This repository contains the adjustments, that need to be taken care of, in order to run the slt project on the DFKI slurm cluster. 
 
-Changed: 
-requirements.txt
-sign.yaml
+If you want to run this please do the following:
+- `mkdir netscratch/$USER$`
+- `mkdir netscratch/$USER$/slt`
+- `mkdir netscratch/$USER$/slt/models`
+- change the line 53 of the configs/sign.yaml from `model_dir: "netscratch/hufe/slt/models"` to `model_dir: "netscratch/YOUR_USERNAME/slt/models"`
 
-Added:
-install.sh
+
+
+
+Changed: <br>
+requirements.txt <br>
+sign.yaml <br>
+
+Added: <br>
 run.sh
 
 =======================================================================
