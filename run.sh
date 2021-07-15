@@ -4,5 +4,4 @@ srun \
 --gpus=1 \
 --nodes=1 \
 --ntasks=1 \
---mem=42G \
 python -m signjoey train configs/sign.yaml

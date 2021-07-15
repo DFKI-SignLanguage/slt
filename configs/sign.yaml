@@ -50,7 +50,7 @@ training:
     reset_scheduler: false
     reset_optimizer: false
     random_seed: 42
-    model_dir: "netscratch/hufe/slt/models"
+    model_dir: "netscratch/slt/models"
     recognition_loss_weight: 1.0
     translation_loss_weight: 1.0
     eval_metric: bleu
