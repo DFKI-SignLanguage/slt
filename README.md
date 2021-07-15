@@ -1,20 +1,13 @@
 This repository contains the adjustments, that need to be taken care of, in order to run the slt project on the DFKI slurm cluster. 
 
-If you want to run this please do the following:
-- `mkdir netscratch/$USER$`
-- `mkdir netscratch/$USER$/slt`
-- `mkdir netscratch/$USER$/slt/models`
-- change the line 53 of the configs/sign.yaml from `model_dir: "netscratch/hufe/slt/models"` to `model_dir: "netscratch/YOUR_USERNAME/slt/models"`
+To train the slt module please do the following:
 
+```
+git clone https://github.com/DFKI-SignLanguage/slt.git
+./slt/setup.sh
+```
 
-
-
-Changed: <br>
-requirements.txt <br>
-sign.yaml <br>
-
-Added: <br>
-run.sh
+This will setup and run the training process.
 
 =======================================================================
 
