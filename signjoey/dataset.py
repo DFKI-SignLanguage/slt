@@ -11,7 +11,7 @@ import torch
 
 
 def load_dataset_file(filename):
-    with gzip.open(filename, "rb") as f:
+    with open(filename, "rb") as f:
         loaded_object = pickle.load(f)
         return loaded_object
 

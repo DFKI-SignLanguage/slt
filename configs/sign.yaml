@@ -1,14 +1,14 @@
 name: sign_experiment
 data:
-    data_path: /data/PhoenixEmbedding
+    data_path: /data/PhoenixKeypointEmbedding
     version: phoenix_2014_trans
     sgn: sign
     txt: text
     gls: gloss
-    train: PHOENIX2014T/phoenix14t.pami0.train
-    dev: PHOENIX2014T/phoenix14t.pami0.dev
-    test: PHOENIX2014T/phoenix14t.pami0.test
-    feature_size: 1024
+    train: PHOENIX2014T/signjoey.train
+    dev: PHOENIX2014T/signjoey.dev
+    test: PHOENIX2014T/signjoey.test
+    feature_size: 1728
     level: word
     txt_lowercase: true
     max_sent_length: 400
@@ -50,7 +50,7 @@ training:
     reset_scheduler: false
     reset_optimizer: false
     random_seed: 42
-    model_dir: "netscratch/slt/models"
+    model_dir: "/netscratch/slt/model"
     recognition_loss_weight: 1.0
     translation_loss_weight: 1.0
     eval_metric: bleu
@@ -58,7 +58,7 @@ training:
     learning_rate: 0.001
     batch_size: 32
     num_valid_log: 5
-    epochs: 5000000
+    epochs: 10000
     early_stopping_metric: eval_metric
     batch_type: sentence
     translation_normalization: batch
@@ -82,6 +82,7 @@ training:
     patience: 8
     decrease_factor: 0.7
     label_smoothing: 0.0
+    geometric_augmentation: 1
 model:
     initializer: xavier
     bias_initializer: zeros
