@@ -9,6 +9,7 @@ import os
 import shutil
 import time
 import queue
+import random
 
 from signjoey.model import build_model
 from signjoey.batch import Batch
@@ -339,7 +340,7 @@ class TrainManager:
         if self.use_cuda:
             self.model.cuda()
 
-    def train_and_validate(self, train_data: Dataset, valid_data: Dataset) -> None:
+    def train_and_validate(self, train_data: Dataset, valid_data: Dataset, geometric_augmentation:bool) -> None:
         """
         Train the model and validate it from time to time on the validation set.
 
@@ -391,9 +392,9 @@ class TrainManager:
                 # increasing-mini-batch-size-without-increasing-
                 # memory-6794e10db672
                 update = count == 0
-
+                
                 recognition_loss, translation_loss = self._train_batch(
-                    batch, update=update
+                    batch, update=update, geometric_augmentation=geometric_augmentation
                 )
 
                 if self.do_recognition:
@@ -726,7 +727,38 @@ class TrainManager:
 
         self.tb_writer.close()  # close Tensorboard writer
 
-    def _train_batch(self, batch: Batch, update: bool = True) -> (Tensor, Tensor):
+    def _geometric_augmentation(self, batch: Batch)  -> Batch:
+        dim1, dim2, _ = batch.sgn.shape
+
+        batch.sgn = batch.sgn.view((dim1, dim2, 576, 3))
+        
+        # draw random angle values that direct the amount of rotation
+        theta_x = torch.deg2rad(torch.Tensor( [random.uniform(-5, 5)]))
+        theta_y = torch.deg2rad(torch.Tensor( [random.uniform(-5, 5)]))
+        theta_z = torch.deg2rad(torch.Tensor( [random.uniform(-5, 5)]))
+       
+        # calculate the cos and sin for the rotation mat
+        c_x = torch.cos(theta_x)
+        s_x = torch.sin(theta_x)
+        c_y = torch.cos(theta_y)
+        s_y = torch.sin(theta_y)
+        c_z = torch.cos(theta_z)
+        s_z = torch.sin(theta_z)
+
+        # setup the roatation mat for every axis
+        rot_x = torch.Tensor([[1, 0, 0], [0, c_x, -s_x], [0, s_x, c_x]]).cuda()#, device=batch.sgn.device)
+        rot_y = torch.Tensor([[c_y, 0, s_y], [0, 1, 0], [-s_y, 0, c_y]]).cuda()#, device=batch.sgn.device)
+        rot_z = torch.Tensor([[c_z, -s_z, 0], [s_z, c_z, 0], [0, 0, 1]]).cuda()#, device=batch.sgn.device)
+
+        # concat them - THE SEQUENCE IS ARBITRARLY CHOOSEN - INVESTIGATE
+        rot = rot_x @ rot_y @ rot_z
+
+        # reshape after applying the matrix
+        batch.sgn = torch.matmul(batch.sgn, rot)
+        batch.sgn = batch.sgn.view((dim1, dim2, 1728))
+        return batch
+
+    def _train_batch(self, batch: Batch, geometric_augmentation:bool, update: bool = True) -> (Tensor, Tensor):
         """
         Train the model on one batch: Compute the loss, make a gradient step.
 
@@ -735,6 +767,9 @@ class TrainManager:
         :return normalized_recognition_loss: Normalized recognition loss
         :return normalized_translation_loss: Normalized translation loss
         """
+
+        if geometric_augmentation:
+            batch = self._geometric_augmentation(batch)
 
         recognition_loss, translation_loss = self.model.get_loss_for_batch(
             batch=batch,
@@ -1019,7 +1054,7 @@ def train(cfg_file: str) -> None:
     txt_vocab.to_file(txt_vocab_file)
 
     # train the model
-    trainer.train_and_validate(train_data=train_data, valid_data=dev_data)
+    trainer.train_and_validate(train_data=train_data, valid_data=dev_data, geometric_augmentation=cfg["training"]['geometric_augmentation'])
     # Delete to speed things up as we don't need training data anymore
     del train_data, dev_data, test_data
 
