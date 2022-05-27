@@ -58,7 +58,8 @@ training:
     learning_rate: 0.001
     batch_size: 32
     num_valid_log: 5
-    epochs: 10000
+    epochs: 100000
+    min_epochs: 150
     early_stopping_metric: eval_metric
     batch_type: sentence
     translation_normalization: batch
@@ -79,10 +80,15 @@ training:
     scheduling: plateau
     learning_rate_min: 1.0e-07
     weight_decay: 0.001
-    patience: 8
+    patience: 25
     decrease_factor: 0.7
     label_smoothing: 0.0
-    geometric_augmentation: 1
+    geometric_augmentation:
+        use_geometric_augmentation: 1
+        max_x: 10
+        max_y: 10
+        max_z: 10
+        order: 'xyz'
 model:
     initializer: xavier
     bias_initializer: zeros

@@ -10,6 +10,7 @@ import shutil
 import time
 import queue
 import random
+import wandb
 
 from signjoey.model import build_model
 from signjoey.batch import Batch
@@ -35,6 +36,7 @@ from torch import Tensor
 from torch.utils.tensorboard import SummaryWriter
 from torchtext.data import Dataset
 from typing import List, Dict
+from datetime import datetime
 
 
 # pylint: disable=too-many-instance-attributes
@@ -59,6 +61,10 @@ class TrainManager:
         self.logging_freq = train_config.get("logging_freq", 100)
         self.valid_report_file = "{}/validations.txt".format(self.model_dir)
         self.tb_writer = SummaryWriter(log_dir=self.model_dir + "/tensorboard/")
+        self.wandb = wandb.init(
+            project='geometric-augmentation',
+            config=config
+            ) 
 
         # input
         self.feature_size = (
@@ -157,6 +163,7 @@ class TrainManager:
 
         self.shuffle = train_config.get("shuffle", True)
         self.epochs = train_config["epochs"]
+        self.min_epochs = train_config["min_epochs"]
         self.batch_size = train_config["batch_size"]
         self.batch_type = train_config.get("batch_type", "sentence")
         self.eval_batch_size = train_config.get("eval_batch_size", self.batch_size)
@@ -340,7 +347,7 @@ class TrainManager:
         if self.use_cuda:
             self.model.cuda()
 
-    def train_and_validate(self, train_data: Dataset, valid_data: Dataset, geometric_augmentation:bool) -> None:
+    def train_and_validate(self, train_data: Dataset, valid_data: Dataset, geometric_augmentation:dict) -> None:
         """
         Train the model and validate it from time to time on the validation set.
 
@@ -401,12 +408,14 @@ class TrainManager:
                     self.tb_writer.add_scalar(
                         "train/train_recognition_loss", recognition_loss, self.steps
                     )
+                    self.wandb.log({'train/recognition_loss': recognition_loss}, step=self.steps)
                     epoch_recognition_loss += recognition_loss.detach().cpu().numpy()
 
                 if self.do_translation:
                     self.tb_writer.add_scalar(
                         "train/train_translation_loss", translation_loss, self.steps
                     )
+                    self.wandb.log({'train/translation_loss': translation_loss}, step=self.steps)
                     epoch_translation_loss += translation_loss.detach().cpu().numpy()
 
                 count = self.batch_multiplier if update else count
@@ -505,6 +514,13 @@ class TrainManager:
 
                     if self.do_recognition:
                         # Log Losses and ppl
+                        
+                        self.wandb.log({
+                            'validation/recognition_loss': val_res["valid_recognition_loss"],
+                            'validation/wer': val_res["valid_scores"]["wer"],
+                            'validation/wer_scores': val_res["valid_scores"]["wer_scores"]
+                            }, step=self.steps)
+                            
                         self.tb_writer.add_scalar(
                             "valid/valid_recognition_loss",
                             val_res["valid_recognition_loss"],
@@ -520,6 +536,15 @@ class TrainManager:
                         )
 
                     if self.do_translation:
+                        self.wandb.log({
+                            'validation/translation_loss': val_res["valid_translation_loss"],
+                            'validation/valid_ppl': val_res["valid_ppl"],
+                            'validation/chrf': val_res["valid_scores"]["chrf"],
+                            'validation/rouge': val_res["valid_scores"]["rouge"],
+                            'validation/bleu': val_res["valid_scores"]["bleu"],
+                            'validation/bleu_scores': val_res["valid_scores"]["bleu_scores"],
+                        }, step=self.steps)
+
                         self.tb_writer.add_scalar(
                             "valid/valid_translation_loss",
                             val_res["valid_translation_loss"],
@@ -689,7 +714,7 @@ class TrainManager:
                             "references.dev.txt", valid_seq, val_res["txt_ref"]
                         )
 
-                if self.stop:
+                if self.stop and epoch_no > self.min_epochs:
                     break
             if self.stop:
                 if (
@@ -726,16 +751,17 @@ class TrainManager:
         )
 
         self.tb_writer.close()  # close Tensorboard writer
+        self.wandb.finish()
 
-    def _geometric_augmentation(self, batch: Batch)  -> Batch:
+    def apply_geometric_augmentation(self, geometric_augmentation:dict, batch: Batch)  -> Batch:
         dim1, dim2, _ = batch.sgn.shape
 
         batch.sgn = batch.sgn.view((dim1, dim2, 576, 3))
         
         # draw random angle values that direct the amount of rotation
-        theta_x = torch.deg2rad(torch.Tensor( [random.uniform(-5, 5)]))
-        theta_y = torch.deg2rad(torch.Tensor( [random.uniform(-5, 5)]))
-        theta_z = torch.deg2rad(torch.Tensor( [random.uniform(-5, 5)]))
+        theta_x = torch.deg2rad(torch.Tensor( [random.uniform(-geometric_augmentation['max_x'], geometric_augmentation['max_x'])]))
+        theta_y = torch.deg2rad(torch.Tensor( [random.uniform(-geometric_augmentation['max_y'], geometric_augmentation['max_y'])]))
+        theta_z = torch.deg2rad(torch.Tensor( [random.uniform(-geometric_augmentation['max_z'], geometric_augmentation['max_z'])]))
        
         # calculate the cos and sin for the rotation mat
         c_x = torch.cos(theta_x)
@@ -746,19 +772,25 @@ class TrainManager:
         s_z = torch.sin(theta_z)
 
         # setup the roatation mat for every axis
-        rot_x = torch.Tensor([[1, 0, 0], [0, c_x, -s_x], [0, s_x, c_x]]).cuda()#, device=batch.sgn.device)
-        rot_y = torch.Tensor([[c_y, 0, s_y], [0, 1, 0], [-s_y, 0, c_y]]).cuda()#, device=batch.sgn.device)
-        rot_z = torch.Tensor([[c_z, -s_z, 0], [s_z, c_z, 0], [0, 0, 1]]).cuda()#, device=batch.sgn.device)
+        rot_x = torch.Tensor([[1, 0, 0], [0, c_x, -s_x], [0, s_x, c_x]]).cuda()
+        rot_y = torch.Tensor([[c_y, 0, s_y], [0, 1, 0], [-s_y, 0, c_y]]).cuda()
+        rot_z = torch.Tensor([[c_z, -s_z, 0], [s_z, c_z, 0], [0, 0, 1]]).cuda()
 
-        # concat them - THE SEQUENCE IS ARBITRARLY CHOOSEN - INVESTIGATE
-        rot = rot_x @ rot_y @ rot_z
+        # concat them following the oder given by the config
+        lookup = {
+            'x': rot_x,
+            'y': rot_y,
+            'z': rot_z 
+        }
+        pos = list(geometric_augmentation['oder'])
+        rot = lookup[pos[0]] @ lookup[pos[1]] @ lookup[pos[2]]
 
         # reshape after applying the matrix
         batch.sgn = torch.matmul(batch.sgn, rot)
         batch.sgn = batch.sgn.view((dim1, dim2, 1728))
         return batch
 
-    def _train_batch(self, batch: Batch, geometric_augmentation:bool, update: bool = True) -> (Tensor, Tensor):
+    def _train_batch(self, batch: Batch, geometric_augmentation:dict, update: bool = True) -> (Tensor, Tensor):
         """
         Train the model on one batch: Compute the loss, make a gradient step.
 
@@ -768,8 +800,8 @@ class TrainManager:
         :return normalized_translation_loss: Normalized translation loss
         """
 
-        if geometric_augmentation:
-            batch = self._geometric_augmentation(batch)
+        if geometric_augmentation['use_geometric_augmentationc']:
+            batch = self.apply_geometric_augmentation(geometric_augmentation, batch)
 
         recognition_loss, translation_loss = self.model.get_loss_for_batch(
             batch=batch,
@@ -941,9 +973,11 @@ class TrainManager:
         if self.do_recognition:
             assert len(gls_references) == len(gls_hypotheses)
             num_sequences = len(gls_hypotheses)
+            recognition_table = wandb.Table(columns= ['Gloss Reference', 'Gloss Hypothesis', 'Gloss Alignment'])
         if self.do_translation:
             assert len(txt_references) == len(txt_hypotheses)
             num_sequences = len(txt_hypotheses)
+            translation_table = wandb.Table(columns= ['Text Reference', 'Text Hypothesis', 'Text Alignment'])
 
         rand_idx = np.sort(np.random.permutation(num_sequences)[: self.num_valid_log])
         self.logger.info("Logging Recognition and Translation Outputs")
@@ -952,6 +986,11 @@ class TrainManager:
             self.logger.info("Logging Sequence: %s", sequences[ri])
             if self.do_recognition:
                 gls_res = wer_single(r=gls_references[ri], h=gls_hypotheses[ri])
+
+                # wandb logging
+                recognition_table.add_data( gls_res["alignment_out"]["align_ref"], gls_res["alignment_out"]["align_hyp"], gls_res["alignment_out"]["alignment"])
+
+                # stdio logging
                 self.logger.info(
                     "\tGloss Reference :\t%s", gls_res["alignment_out"]["align_ref"]
                 )
@@ -961,10 +1000,17 @@ class TrainManager:
                 self.logger.info(
                     "\tGloss Alignment :\t%s", gls_res["alignment_out"]["alignment"]
                 )
+
             if self.do_recognition and self.do_translation:
                 self.logger.info("\t" + "-" * 116)
+
             if self.do_translation:
                 txt_res = wer_single(r=txt_references[ri], h=txt_hypotheses[ri])
+
+                # wandb logging
+                translation_table.add_data( txt_res["alignment_out"]["align_ref"], txt_res["alignment_out"]["align_hyp"], txt_res["alignment_out"]["alignment"])
+
+                # stdio logging
                 self.logger.info(
                     "\tText Reference  :\t%s", txt_res["alignment_out"]["align_ref"]
                 )
@@ -975,6 +1021,11 @@ class TrainManager:
                     "\tText Alignment  :\t%s", txt_res["alignment_out"]["alignment"]
                 )
             self.logger.info("=" * 120)
+
+        if self.do_recognition:
+            self.wandb.log({'Examples - recognition': recognition_table}, step=self.steps)
+        if self.do_translation:
+            self.wandb.log({'Examples - translation': translation_table}, step=self.steps)
 
     def _store_outputs(
         self, tag: str, sequence_ids: List[str], hypotheses: List[str], sub_folder=None
@@ -1005,6 +1056,10 @@ def train(cfg_file: str) -> None:
     :param cfg_file: path to configuration yaml file
     """
     cfg = load_config(cfg_file)
+
+    now = datetime.now()
+    date_time = now.strftime("%d/%m/%Y-%H:%M:%S")
+    cfg.model['training']['model_dir'] += ' - ' + date_time
 
     # set the random seed
     set_seed(seed=cfg["training"].get("random_seed", 42))
