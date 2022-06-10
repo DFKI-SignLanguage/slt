@@ -1,0 +1,27 @@
+method: random
+metric:
+  goal: maximize
+  name: validation/bleu
+parameters:
+  training.geometric_augmentation.max_x:
+    distribution: int_uniform
+    max: 120
+    min: 5
+  training.geometric_augmentation.max_y:
+    distribution: int_uniform
+    max: 120
+    min: 5
+  training.geometric_augmentation.max_z:
+    distribution: int_uniform
+    max: 120
+    min: 0
+  training.geometric_augmentation.order:
+    distribution: categorical
+    values:
+      - xyz
+      - xzy
+      - yxz
+      - yzx
+      - zxy
+      - zyx
+program: sweep.py

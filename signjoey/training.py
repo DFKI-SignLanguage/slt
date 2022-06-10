@@ -17,6 +17,7 @@ from signjoey.batch import Batch
 from signjoey.helpers import (
     log_data_info,
     load_config,
+    write_config,
     log_cfg,
     load_checkpoint,
     make_model_dir,
@@ -1056,47 +1057,48 @@ def train(cfg_file: str, sweep = False) -> None:
         
     wandb_logger = wandb.init(
         project='geometric-augmentation',
-        config=cfg
+        config=inital_cfg
         ) 
     
     if sweep:
         sweep_params = wandb.config
-        cfg = merge_sweep_and_cfg(cfg, )
+        config = merge_sweep_and_cfg(inital_cfg, sweep_params)
+    else:
+        config = inital_cfg
 
     now = datetime.now()
     date_time = now.strftime("%d/%m/%Y-%H:%M:%S")
-    cfg['training']['model_dir'] += ' - ' + date_time
+    config['training']['model_dir'] += ' - ' + date_time
 
     # set the random seed
-    set_seed(seed=cfg["training"].get("random_seed", 42))
+    set_seed(seed=config["training"].get("random_seed", 42))
 
     train_data, dev_data, test_data, gls_vocab, txt_vocab = load_data(
-        data_cfg=cfg["data"]
+        data_cfg=config["data"]
     )
-
+    
     # build model and load parameters into it
-    do_recognition = cfg["training"].get("recognition_loss_weight", 1.0) > 0.0
-    do_translation = cfg["training"].get("translation_loss_weight", 1.0) > 0.0
+    do_recognition = config["training"].get("recognition_loss_weight", 1.0) > 0.0
+    do_translation = config["training"].get("translation_loss_weight", 1.0) > 0.0
     model = build_model(
-        cfg=cfg["model"],
+        cfg=config["model"],
         gls_vocab=gls_vocab,
         txt_vocab=txt_vocab,
-        sgn_dim=sum(cfg["data"]["feature_size"])
-        if isinstance(cfg["data"]["feature_size"], list)
-        else cfg["data"]["feature_size"],
+        sgn_dim=sum(config["data"]["feature_size"])
+        if isinstance(config["data"]["feature_size"], list)
+        else config["data"]["feature_size"],
         do_recognition=do_recognition,
         do_translation=do_translation
     )
 
     # for training management, e.g. early stopping and model selection
-    trainer = TrainManager(model=model, config=cfg, wandb_logger=wandb_logger)
+    trainer = TrainManager(model=model, config=config, wandb_logger=wandb_logger)
 
     # store copy of original training config in model dir
-    if cfg_file is not None:
-        shutil.copy2(cfg_file, trainer.model_dir + "/config.yaml")
+    write_config(cfg_file, trainer.model_dir + "/config.yaml")
 
     # log all entries of config
-    log_cfg(cfg, trainer.logger)
+    log_cfg(config, trainer.logger)
 
     log_data_info(
         train_data=train_data,
@@ -1110,13 +1112,13 @@ def train(cfg_file: str, sweep = False) -> None:
     trainer.logger.info(str(model))
 
     # store the vocabs
-    gls_vocab_file = "{}/gls.vocab".format(cfg["training"]["model_dir"])
+    gls_vocab_file = "{}/gls.vocab".format(config["training"]["model_dir"])
     gls_vocab.to_file(gls_vocab_file)
-    txt_vocab_file = "{}/txt.vocab".format(cfg["training"]["model_dir"])
+    txt_vocab_file = "{}/txt.vocab".format(config["training"]["model_dir"])
     txt_vocab.to_file(txt_vocab_file)
 
     # train the model
-    trainer.train_and_validate(train_data=train_data, valid_data=dev_data, geometric_augmentation=cfg["training"]['geometric_augmentation'])
+    trainer.train_and_validate(train_data=train_data, valid_data=dev_data, geometric_augmentation=config["training"]['geometric_augmentation'])
     # Delete to speed things up as we don't need training data anymore
     del train_data, dev_data, test_data
 
@@ -1127,7 +1129,7 @@ def train(cfg_file: str, sweep = False) -> None:
     output_path = os.path.join(trainer.model_dir, output_name)
     logger = trainer.logger
     del trainer
-    test(cfg_file, ckpt=ckpt, output_path=output_path, logger=logger)
+    test(trainer.model_dir + "/config.yaml", ckpt=ckpt, output_path=output_path, logger=logger)
 
 
 if __name__ == "__main__":
