@@ -23,6 +23,7 @@ from signjoey.helpers import (
     make_logger,
     set_seed,
     symlink_update,
+    merge_sweep_and_cfg,
 )
 from signjoey.model import SignModel
 from signjoey.prediction import validate_on_data
@@ -44,7 +45,7 @@ class TrainManager:
     """ Manages training loop, validations, learning rate scheduling
     and early stopping."""
 
-    def __init__(self, model: SignModel, config: dict) -> None:
+    def __init__(self, model: SignModel, config: dict, wandb_logger) -> None:
         """
         Creates a new TrainManager for a model, specified as in configuration.
 
@@ -61,10 +62,7 @@ class TrainManager:
         self.logging_freq = train_config.get("logging_freq", 100)
         self.valid_report_file = "{}/validations.txt".format(self.model_dir)
         self.tb_writer = SummaryWriter(log_dir=self.model_dir + "/tensorboard/")
-        self.wandb = wandb.init(
-            project='geometric-augmentation',
-            config=config
-            ) 
+        self.wandb = wandb_logger
 
         # input
         self.feature_size = (
@@ -163,7 +161,6 @@ class TrainManager:
 
         self.shuffle = train_config.get("shuffle", True)
         self.epochs = train_config["epochs"]
-        self.min_epochs = train_config["min_epochs"]
         self.batch_size = train_config["batch_size"]
         self.batch_type = train_config.get("batch_type", "sentence")
         self.eval_batch_size = train_config.get("eval_batch_size", self.batch_size)
@@ -714,7 +711,7 @@ class TrainManager:
                             "references.dev.txt", valid_seq, val_res["txt_ref"]
                         )
 
-                if self.stop and epoch_no > self.min_epochs:
+                if self.stop:
                     break
             if self.stop:
                 if (
@@ -782,7 +779,7 @@ class TrainManager:
             'y': rot_y,
             'z': rot_z 
         }
-        pos = list(geometric_augmentation['oder'])
+        pos = list(geometric_augmentation['order'])
         rot = lookup[pos[0]] @ lookup[pos[1]] @ lookup[pos[2]]
 
         # reshape after applying the matrix
@@ -800,7 +797,7 @@ class TrainManager:
         :return normalized_translation_loss: Normalized translation loss
         """
 
-        if geometric_augmentation['use_geometric_augmentationc']:
+        if geometric_augmentation['use_geometric_augmentation']:
             batch = self.apply_geometric_augmentation(geometric_augmentation, batch)
 
         recognition_loss, translation_loss = self.model.get_loss_for_batch(
@@ -894,7 +891,7 @@ class TrainManager:
         if new_best:
             self.last_best_lr = current_lr
 
-        if current_lr < self.learning_rate_min:
+        if current_lr < self.learning_rate_min and self.steps > 30000:
             self.stop = True
 
         with open(self.valid_report_file, "a", encoding="utf-8") as opened_file:
@@ -1049,17 +1046,26 @@ class TrainManager:
                 opened_file.write("{}|{}\n".format(seq, hyp))
 
 
-def train(cfg_file: str) -> None:
+def train(cfg_file: str, sweep = False) -> None:
     """
     Main training function. After training, also test on test data if given.
 
     :param cfg_file: path to configuration yaml file
     """
-    cfg = load_config(cfg_file)
+    inital_cfg = load_config(cfg_file)
+        
+    wandb_logger = wandb.init(
+        project='geometric-augmentation',
+        config=cfg
+        ) 
+    
+    if sweep:
+        sweep_params = wandb.config
+        cfg = merge_sweep_and_cfg(cfg, )
 
     now = datetime.now()
     date_time = now.strftime("%d/%m/%Y-%H:%M:%S")
-    cfg.model['training']['model_dir'] += ' - ' + date_time
+    cfg['training']['model_dir'] += ' - ' + date_time
 
     # set the random seed
     set_seed(seed=cfg["training"].get("random_seed", 42))
@@ -1079,14 +1085,15 @@ def train(cfg_file: str) -> None:
         if isinstance(cfg["data"]["feature_size"], list)
         else cfg["data"]["feature_size"],
         do_recognition=do_recognition,
-        do_translation=do_translation,
+        do_translation=do_translation
     )
 
     # for training management, e.g. early stopping and model selection
-    trainer = TrainManager(model=model, config=cfg)
+    trainer = TrainManager(model=model, config=cfg, wandb_logger=wandb_logger)
 
     # store copy of original training config in model dir
-    shutil.copy2(cfg_file, trainer.model_dir + "/config.yaml")
+    if cfg_file is not None:
+        shutil.copy2(cfg_file, trainer.model_dir + "/config.yaml")
 
     # log all entries of config
     log_cfg(cfg, trainer.logger)
@@ -1126,14 +1133,16 @@ def train(cfg_file: str) -> None:
 if __name__ == "__main__":
     parser = argparse.ArgumentParser("Joey-NMT")
     parser.add_argument(
-        "config",
-        default="configs/default.yaml",
-        type=str,
-        help="Training configuration file (yaml).",
+       "config",
+       default="configs/default.yaml",
+       type=str,
+       help="Training configuration file (yaml).",
     )
     parser.add_argument(
-        "--gpu_id", type=str, default="0", help="gpu to run your job on"
+       "--gpu_id", type=str, default="0", help="gpu to run your job on"
     )
     args = parser.parse_args()
     os.environ["CUDA_VISIBLE_DEVICES"] = args.gpu_id
-    train(cfg_file=args.config)
+
+    #train(cfg_file=args.config)
+    train(cfg_file=None)
