@@ -62,7 +62,7 @@ class TrainManager:
         self.logger = make_logger(model_dir=self.model_dir)
         self.logging_freq = train_config.get("logging_freq", 100)
         self.valid_report_file = "{}/validations.txt".format(self.model_dir)
-        self.tb_writer = SummaryWriter(log_dir=self.model_dir + "/tensorboard/")
+        # self.tb_writer = SummaryWriter(log_dir=self.model_dir + "/tensorboard/")
         self.wandb = wandb_logger
 
         # input
@@ -345,7 +345,7 @@ class TrainManager:
         if self.use_cuda:
             self.model.cuda()
 
-    def train_and_validate(self, train_data: Dataset, valid_data: Dataset, geometric_augmentation:dict) -> None:
+    def train_and_validate(self, train_data: Dataset, valid_data: Dataset, geometric_augmentation:dict, min_epochs=0) -> None:
         """
         Train the model and validate it from time to time on the validation set.
 
@@ -403,16 +403,16 @@ class TrainManager:
                 )
 
                 if self.do_recognition:
-                    self.tb_writer.add_scalar(
-                        "train/train_recognition_loss", recognition_loss, self.steps
-                    )
+                    # self.tb_writer.add_scalar(
+                    #     "train/train_recognition_loss", recognition_loss, self.steps
+                    # )
                     self.wandb.log({'train/recognition_loss': recognition_loss}, step=self.steps)
                     epoch_recognition_loss += recognition_loss.detach().cpu().numpy()
 
                 if self.do_translation:
-                    self.tb_writer.add_scalar(
-                        "train/train_translation_loss", translation_loss, self.steps
-                    )
+                    # self.tb_writer.add_scalar(
+                    #     "train/train_translation_loss", translation_loss, self.steps
+                    # )
                     self.wandb.log({'train/translation_loss': translation_loss}, step=self.steps)
                     epoch_translation_loss += translation_loss.detach().cpu().numpy()
 
@@ -519,19 +519,19 @@ class TrainManager:
                             'validation/wer_scores': val_res["valid_scores"]["wer_scores"]
                             }, step=self.steps)
                             
-                        self.tb_writer.add_scalar(
-                            "valid/valid_recognition_loss",
-                            val_res["valid_recognition_loss"],
-                            self.steps,
-                        )
-                        self.tb_writer.add_scalar(
-                            "valid/wer", val_res["valid_scores"]["wer"], self.steps
-                        )
-                        self.tb_writer.add_scalars(
-                            "valid/wer_scores",
-                            val_res["valid_scores"]["wer_scores"],
-                            self.steps,
-                        )
+                        # self.tb_writer.add_scalar(
+                        #     "valid/valid_recognition_loss",
+                        #     val_res["valid_recognition_loss"],
+                        #     self.steps,
+                        # )
+                        # self.tb_writer.add_scalar(
+                        #     "valid/wer", val_res["valid_scores"]["wer"], self.steps
+                        # )
+                        # self.tb_writer.add_scalars(
+                        #     "valid/wer_scores",
+                        #     val_res["valid_scores"]["wer_scores"],
+                        #     self.steps,
+                        # )
 
                     if self.do_translation:
                         self.wandb.log({
@@ -543,30 +543,30 @@ class TrainManager:
                             'validation/bleu_scores': val_res["valid_scores"]["bleu_scores"],
                         }, step=self.steps)
 
-                        self.tb_writer.add_scalar(
-                            "valid/valid_translation_loss",
-                            val_res["valid_translation_loss"],
-                            self.steps,
-                        )
-                        self.tb_writer.add_scalar(
-                            "valid/valid_ppl", val_res["valid_ppl"], self.steps
-                        )
+                        # self.tb_writer.add_scalar(
+                        #     "valid/valid_translation_loss",
+                        #     val_res["valid_translation_loss"],
+                        #     self.steps,
+                        # )
+                        # self.tb_writer.add_scalar(
+                        #     "valid/valid_ppl", val_res["valid_ppl"], self.steps
+                        # )
 
-                        # Log Scores
-                        self.tb_writer.add_scalar(
-                            "valid/chrf", val_res["valid_scores"]["chrf"], self.steps
-                        )
-                        self.tb_writer.add_scalar(
-                            "valid/rouge", val_res["valid_scores"]["rouge"], self.steps
-                        )
-                        self.tb_writer.add_scalar(
-                            "valid/bleu", val_res["valid_scores"]["bleu"], self.steps
-                        )
-                        self.tb_writer.add_scalars(
-                            "valid/bleu_scores",
-                            val_res["valid_scores"]["bleu_scores"],
-                            self.steps,
-                        )
+                        # # Log Scores
+                        # self.tb_writer.add_scalar(
+                        #     "valid/chrf", val_res["valid_scores"]["chrf"], self.steps
+                        # )
+                        # self.tb_writer.add_scalar(
+                        #     "valid/rouge", val_res["valid_scores"]["rouge"], self.steps
+                        # )
+                        # self.tb_writer.add_scalar(
+                        #     "valid/bleu", val_res["valid_scores"]["bleu"], self.steps
+                        # )
+                        # self.tb_writer.add_scalars(
+                        #     "valid/bleu_scores",
+                        #     val_res["valid_scores"]["bleu_scores"],
+                        #     self.steps,
+                        # )
 
                     if self.early_stopping_metric == "recognition_loss":
                         assert self.do_recognition
@@ -712,7 +712,7 @@ class TrainManager:
                             "references.dev.txt", valid_seq, val_res["txt_ref"]
                         )
 
-                if self.stop:
+                if self.stop and self.steps > min_epochs:
                     break
             if self.stop:
                 if (
@@ -748,13 +748,14 @@ class TrainManager:
             self.early_stopping_metric,
         )
 
-        self.tb_writer.close()  # close Tensorboard writer
+        # self.tb_writer.close()  # close Tensorboard writer
         self.wandb.finish()
 
     def apply_geometric_augmentation(self, geometric_augmentation:dict, batch: Batch)  -> Batch:
         dim1, dim2, _ = batch.sgn.shape
 
-        batch.sgn = batch.sgn.view((dim1, dim2, 576, 3))
+        #batch.sgn = batch.sgn.view((dim1, dim2, 576, 3)) # 576 for 1.728 dimensions
+        batch.sgn = batch.sgn.view((dim1, dim2, 236, 3)) # 236 for 708 dimensions
         
         # draw random angle values that direct the amount of rotation
         theta_x = torch.deg2rad(torch.Tensor( [random.uniform(-geometric_augmentation['max_x'], geometric_augmentation['max_x'])]))
@@ -785,7 +786,8 @@ class TrainManager:
 
         # reshape after applying the matrix
         batch.sgn = torch.matmul(batch.sgn, rot)
-        batch.sgn = batch.sgn.view((dim1, dim2, 1728))
+        # batch.sgn = batch.sgn.view((dim1, dim2, 1728))
+        batch.sgn = batch.sgn.view((dim1, dim2, 708))
         return batch
 
     def _train_batch(self, batch: Batch, geometric_augmentation:dict, update: bool = True) -> (Tensor, Tensor):
@@ -892,7 +894,7 @@ class TrainManager:
         if new_best:
             self.last_best_lr = current_lr
 
-        if current_lr < self.learning_rate_min and self.steps > 30000:
+        if current_lr < self.learning_rate_min:
             self.stop = True
 
         with open(self.valid_report_file, "a", encoding="utf-8") as opened_file:
@@ -1056,7 +1058,7 @@ def train(cfg_file: str, sweep = False) -> None:
     inital_cfg = load_config(cfg_file)
         
     wandb_logger = wandb.init(
-        project='geometric-augmentation',
+        project='wmt-slt',
         config=inital_cfg
         ) 
     
@@ -1067,7 +1069,7 @@ def train(cfg_file: str, sweep = False) -> None:
         config = inital_cfg
 
     now = datetime.now()
-    date_time = now.strftime("%d/%m/%Y-%H:%M:%S")
+    date_time = now.strftime("%d %m %Y - %H:%M:%S")
     config['training']['model_dir'] += ' - ' + date_time
 
     # set the random seed
@@ -1095,7 +1097,7 @@ def train(cfg_file: str, sweep = False) -> None:
     trainer = TrainManager(model=model, config=config, wandb_logger=wandb_logger)
 
     # store copy of original training config in model dir
-    write_config(cfg_file, trainer.model_dir + "/config.yaml")
+    write_config(config, trainer.model_dir + "/config.yaml")
 
     # log all entries of config
     log_cfg(config, trainer.logger)
@@ -1118,7 +1120,7 @@ def train(cfg_file: str, sweep = False) -> None:
     txt_vocab.to_file(txt_vocab_file)
 
     # train the model
-    trainer.train_and_validate(train_data=train_data, valid_data=dev_data, geometric_augmentation=config["training"]['geometric_augmentation'])
+    trainer.train_and_validate(train_data=train_data, valid_data=dev_data, geometric_augmentation=config["training"]['geometric_augmentation'], min_epochs=config['training']['min_epochs'])
     # Delete to speed things up as we don't need training data anymore
     del train_data, dev_data, test_data
 
@@ -1128,8 +1130,10 @@ def train(cfg_file: str, sweep = False) -> None:
     output_name = "best.IT_{:08d}".format(trainer.best_ckpt_iteration)
     output_path = os.path.join(trainer.model_dir, output_name)
     logger = trainer.logger
-    del trainer
-    test(trainer.model_dir + "/config.yaml", ckpt=ckpt, output_path=output_path, logger=logger)
+
+    config_dir = f'{trainer.model_dir}/config.yaml' 
+    # del trainer
+    test(config_dir, ckpt=ckpt, output_path=output_path, logger=logger)
 
 
 if __name__ == "__main__":
@@ -1146,5 +1150,4 @@ if __name__ == "__main__":
     args = parser.parse_args()
     os.environ["CUDA_VISIBLE_DEVICES"] = args.gpu_id
 
-    #train(cfg_file=args.config)
-    train(cfg_file=None)
+    train(cfg_file=args.config)

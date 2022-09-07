@@ -3,14 +3,27 @@ metric:
   goal: maximize
   name: validation/bleu
 parameters:
+  training.min_epochs:
+    distribution: categorical
+    values:
+      - 10000
+      - 30000
+      - 50000
+      - 70000
+      - 90000
+  training.use_geometric_augmentation:
+    distribution: categorical
+    values:
+      - 0
+      - 1
   training.geometric_augmentation.max_x:
     distribution: int_uniform
     max: 120
-    min: 5
+    min: 0
   training.geometric_augmentation.max_y:
     distribution: int_uniform
     max: 120
-    min: 5
+    min: 0
   training.geometric_augmentation.max_z:
     distribution: int_uniform
     max: 120

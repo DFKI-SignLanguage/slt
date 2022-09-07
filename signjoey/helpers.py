@@ -180,7 +180,7 @@ def write_config(config:dict, path="configs/default.yaml") -> dict:
     :param config: configuration
     :param path: path to YAML configuration file
     """
-    with open(path, "r", encoding="utf-8") as ymlfile:
+    with open(path, "w", encoding="utf-8") as ymlfile:
         yaml.dump(config, ymlfile)
 
 
@@ -277,54 +277,54 @@ def symlink_update(target, link_name):
         else:
             raise e
 
-def merge_sweep_and_cfg(sweep_params, cfg):
+def merge_sweep_and_cfg(cfg, sweep_params):
     '''
         Convert configuration formats from wandb's format to the local config style:
         training.model_dir -> training: model_dir
     '''
     
-    sweep = sweep_params.as_dict()
+    sweep_params = sweep_params.as_dict()
 
     for key in cfg:        
         
         if 'data.' in key:
             k = key.replace('data.', '')
-            cfg['data'][k] = sweep[key]
+            cfg['data'][k] = sweep_params[key]
 
         elif 'testing.' in key:
-            k = sweep[key].replace('testing.', '')
-            cfg['testing'][k] = sweep[key]
+            k = sweep_params[key].replace('testing.', '')
+            cfg['testing'][k] = sweep_params[key]
 
         elif 'training.geometric_augmentation.' in key:
             k = key.replace('training.geometric_augmentation.', '')
-            cfg['training']['geometric_augmentation'][k] = sweep[key]
+            cfg['training']['geometric_augmentation'][k] = sweep_params[key]
         
         elif 'training.' in key:
             k = key.replace('training.', '')
-            cfg['training'][k] = sweep[key]
+            cfg['training'][k] = sweep_params[key]
 
         elif 'model.encoder.embeddings.' in key:
             k = key.replace('model.encoder.embeddings.', '')
-            cfg['model']['encoder']['embeddings'][k] = sweep[key]
+            cfg['model']['encoder']['embeddings'][k] = sweep_params[key]
 
         elif 'model.encoder.' in key:
             k = key.replace('model.encoder.', '')
-            cfg['model']['encoder'][k] = sweep[key]
+            cfg['model']['encoder'][k] = sweep_params[key]
         
         elif 'model.decoder.embeddings.' in key:
             k = key.replace('model.decoder.embeddings.', '')
-            cfg['model']['decoder']['embeddings'][k] = sweep[key]
+            cfg['model']['decoder']['embeddings'][k] = sweep_params[key]
 
         elif 'model.decoder.' in key:
             k = key.replace('model.decoder.', '')
-            cfg['model']['decoder'][k] = sweep[key]
+            cfg['model']['decoder'][k] = sweep_params[key]
 
         elif 'model.' in key:
             k = key.replace('model.', '')
-            cfg['model'][k] = sweep[key]
+            cfg['model'][k] = sweep_params[key]
 
         else:
-            cfg[key] = sweep[key]
+            cfg[key] = sweep_params[key]
         
 
     return cfg

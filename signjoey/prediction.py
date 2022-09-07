@@ -526,34 +526,20 @@ def test(
         "BLEU-4 %.2f\t(BLEU-1: %.2f,\tBLEU-2: %.2f,\tBLEU-3: %.2f,\tBLEU-4: %.2f)\n\t"
         "CHRF %.2f\t"
         "ROUGE %.2f",
-        dev_best_recognition_beam_size if do_recognition else -1,
-        dev_best_translation_beam_size if do_translation else -1,
-        dev_best_translation_alpha if do_translation else -1,
-        dev_best_recognition_result["valid_scores"]["wer"] if do_recognition else -1,
-        dev_best_recognition_result["valid_scores"]["wer_scores"]["del_rate"]
-        if do_recognition
-        else -1,
-        dev_best_recognition_result["valid_scores"]["wer_scores"]["ins_rate"]
-        if do_recognition
-        else -1,
-        dev_best_recognition_result["valid_scores"]["wer_scores"]["sub_rate"]
-        if do_recognition
-        else -1,
-        dev_best_translation_result["valid_scores"]["bleu"] if do_translation else -1,
-        dev_best_translation_result["valid_scores"]["bleu_scores"]["bleu1"]
-        if do_translation
-        else -1,
-        dev_best_translation_result["valid_scores"]["bleu_scores"]["bleu2"]
-        if do_translation
-        else -1,
-        dev_best_translation_result["valid_scores"]["bleu_scores"]["bleu3"]
-        if do_translation
-        else -1,
-        dev_best_translation_result["valid_scores"]["bleu_scores"]["bleu4"]
-        if do_translation
-        else -1,
-        dev_best_translation_result["valid_scores"]["chrf"] if do_translation else -1,
-        dev_best_translation_result["valid_scores"]["rouge"] if do_translation else -1,
+        -1 if not do_recognition else dev_best_recognition_beam_size,
+        -1 if not do_translation else dev_best_translation_beam_size,
+        -1 if not do_translation else dev_best_translation_alpha,
+        -1 if not do_recognition else dev_best_recognition_result["valid_scores"]["wer"],
+        -1 if not do_recognition else dev_best_recognition_result["valid_scores"]["wer_scores"]["del_rate"],
+        -1 if not do_recognition else dev_best_recognition_result["valid_scores"]["wer_scores"]["ins_rate"],
+        -1 if not do_recognition else dev_best_recognition_result["valid_scores"]["wer_scores"]["sub_rate"],
+        -1 if not do_translation else dev_best_translation_result["valid_scores"]["bleu"],
+        -1 if not do_translation else dev_best_translation_result["valid_scores"]["bleu_scores"]["bleu1"],
+        -1 if not do_translation else dev_best_translation_result["valid_scores"]["bleu_scores"]["bleu2"],
+        -1 if not do_translation else dev_best_translation_result["valid_scores"]["bleu_scores"]["bleu3"],
+        -1 if not do_translation else dev_best_translation_result["valid_scores"]["bleu_scores"]["bleu4"],
+        -1 if not do_translation else dev_best_translation_result["valid_scores"]["chrf"],
+        -1 if not do_translation else dev_best_translation_result["valid_scores"]["rouge"],
     )
     logger.info("*" * 60)
 
@@ -596,34 +582,20 @@ def test(
         "BLEU-4 %.2f\t(BLEU-1: %.2f,\tBLEU-2: %.2f,\tBLEU-3: %.2f,\tBLEU-4: %.2f)\n\t"
         "CHRF %.2f\t"
         "ROUGE %.2f",
-        dev_best_recognition_beam_size if do_recognition else -1,
-        dev_best_translation_beam_size if do_translation else -1,
-        dev_best_translation_alpha if do_translation else -1,
-        test_best_result["valid_scores"]["wer"] if do_recognition else -1,
-        test_best_result["valid_scores"]["wer_scores"]["del_rate"]
-        if do_recognition
-        else -1,
-        test_best_result["valid_scores"]["wer_scores"]["ins_rate"]
-        if do_recognition
-        else -1,
-        test_best_result["valid_scores"]["wer_scores"]["sub_rate"]
-        if do_recognition
-        else -1,
-        test_best_result["valid_scores"]["bleu"] if do_translation else -1,
-        test_best_result["valid_scores"]["bleu_scores"]["bleu1"]
-        if do_translation
-        else -1,
-        test_best_result["valid_scores"]["bleu_scores"]["bleu2"]
-        if do_translation
-        else -1,
-        test_best_result["valid_scores"]["bleu_scores"]["bleu3"]
-        if do_translation
-        else -1,
-        test_best_result["valid_scores"]["bleu_scores"]["bleu4"]
-        if do_translation
-        else -1,
-        test_best_result["valid_scores"]["chrf"] if do_translation else -1,
-        test_best_result["valid_scores"]["rouge"] if do_translation else -1,
+        -1 if not do_recognition else dev_best_recognition_beam_size ,
+        -1 if not do_translation else dev_best_translation_beam_size ,
+        -1 if not do_translation else dev_best_translation_alpha ,
+        -1 if not do_recognition else test_best_result["valid_scores"]["wer"] ,
+        -1 if not do_recognition else test_best_result["valid_scores"]["wer_scores"]["del_rate"] ,
+        -1 if not do_recognition else test_best_result["valid_scores"]["wer_scores"]["ins_rate"] , 
+        -1 if not do_recognition else test_best_result["valid_scores"]["wer_scores"]["sub_rate"] ,
+        -1 if not do_translation else test_best_result["valid_scores"]["bleu"] ,
+        -1 if not do_translation else test_best_result["valid_scores"]["bleu_scores"]["bleu1"] ,
+        -1 if not do_translation else test_best_result["valid_scores"]["bleu_scores"]["bleu2"] ,
+        -1 if not do_translation else test_best_result["valid_scores"]["bleu_scores"]["bleu3"] ,
+        -1 if not do_translation else test_best_result["valid_scores"]["bleu_scores"]["bleu4"] ,
+        -1 if not do_translation else test_best_result["valid_scores"]["chrf"] ,
+        -1 if not do_translation else test_best_result["valid_scores"]["rouge"] ,
     )
     logger.info("*" * 60)
 
