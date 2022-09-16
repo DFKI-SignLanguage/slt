@@ -60,7 +60,28 @@ The configuration of a single experiment is done via a yaml file. These yaml fil
 * The `order` keyword describes the order in which the rotations are applied - `xyz` means the x axis is first applied, then the y rotation and then z rotation
 The other keywords should be self explainatory.
 
+## Dataset format
 
+When creating a new dataset the right format must be employed to make it compatible to this pipeline.
+The dataset must consist of 3 files - a train, a dev and a test set, which can be specified in the configuration file. 
+
+### Content of the files
+
+The files contain a simple list, which is compressed using the (pickle module)[https://docs.python.org/3/library/pickle.html]. Let the list containing the data be named `train_list` the file can be created by
+```
+with open(f'dataset.train', 'wb') as f:
+    pickle.dump(train_list, f)
+```
+
+The format of the list is as follows:
+
+Each entry is a dictionary with the keywords 'name', 'signer', 'gloss', 'text' and 'sign'.
+
+* `name` works as an identifier for each datapoint in the dataset
+* `signer` refers to the name of the translator/signer in the video
+* `gloss` aren't used in this project - we can leave them as an empty string
+* `text` is the target text of the translation
+* `sign` is a pytorch tensor   
 
 
 =======================================================================
