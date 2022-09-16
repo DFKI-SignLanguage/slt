@@ -4,8 +4,4 @@ srun \
 --gpus=1 \
 --mem=64G \
 -p RTXA6000-SLT \
-python -m signjoey train configs/focusnews.yaml
-#python -m signjoey test configs/focusnews.yaml --ckpt '/netscratch/slt/model - 01 08 2022 - 15:17:58/best.ckpt'
-#--pty bash
-#python -m signjoey test configs/focusnews.yaml --ckpt '/netscratch/slt/model - 01 08 2022 - 15:17:58/best.ckpt'
-#python -m signjoey train configs/focusnews.yaml
+python -m signjoey train configs/phoenix.yaml
