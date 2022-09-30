@@ -754,6 +754,7 @@ class TrainManager:
     def apply_geometric_augmentation(self, geometric_augmentation:dict, batch: Batch)  -> Batch:
         dim1, dim2, _ = batch.sgn.shape
 
+        # bring the data into 3d
         #batch.sgn = batch.sgn.view((dim1, dim2, 576, 3)) # 576 for 1.728 dimensions
         batch.sgn = batch.sgn.view((dim1, dim2, 236, 3)) # 236 for 708 dimensions
         
@@ -784,7 +785,7 @@ class TrainManager:
         pos = list(geometric_augmentation['order'])
         rot = lookup[pos[0]] @ lookup[pos[1]] @ lookup[pos[2]]
 
-        # reshape after applying the matrix
+        # reshape after applying the matrix -> flatten it again
         batch.sgn = torch.matmul(batch.sgn, rot)
         # batch.sgn = batch.sgn.view((dim1, dim2, 1728))
         batch.sgn = batch.sgn.view((dim1, dim2, 708))

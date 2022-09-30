@@ -98,7 +98,7 @@ model:
     tied_softmax: false
     encoder:
         type: transformer
-        num_layers: 3
+        num_layers: 4
         num_heads: 8
         embeddings:
             embedding_dim: 512
@@ -111,7 +111,7 @@ model:
         dropout: 0.1
     decoder:
         type: transformer
-        num_layers: 3
+        num_layers: 4
         num_heads: 8
         embeddings:
             embedding_dim: 512

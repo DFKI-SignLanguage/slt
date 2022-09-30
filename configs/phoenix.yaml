@@ -53,14 +53,14 @@ training:
     model_dir: "/netscratch/slt/model"
     recognition_loss_weight: 0.0
     translation_loss_weight: 1.0
-    eval_metric: bleu
+    eval_metric: chrf
     optimizer: adam
     learning_rate: 0.001
     batch_size: 32
     num_valid_log: 5
     epochs: 100000
     min_epochs: 150
-    early_stopping_metric: chrf
+    early_stopping_metric: eval_metric
     batch_type: sentence
     translation_normalization: batch
     eval_recognition_beam_size: 1

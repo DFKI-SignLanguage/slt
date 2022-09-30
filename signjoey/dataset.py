@@ -11,6 +11,11 @@ import torch
 
 
 def load_dataset_file(filename):
+    # open neccam files with:
+    # with gzip.open(filename, "rb") as f:
+    #     loaded_object = pickle.load(f)
+    #     return loaded_object
+
     with open(filename, "rb") as f:
         loaded_object = pickle.load(f)
         return loaded_object
