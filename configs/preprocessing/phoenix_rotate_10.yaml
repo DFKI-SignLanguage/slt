@@ -1,0 +1,21 @@
+name: sign_experiment
+data:
+    data_path: /data/PhoenixKeypointEmbedding
+    version: phoenix_2014_trans
+    sgn: sign
+    txt: text
+    gls: gloss
+    filename_raw: PHOENIX2014T/signjoey.train
+    feature_size: 1728
+    level: word
+    txt_lowercase: false
+    max_sent_length: 400
+    random_train_subset: -1
+    random_dev_subset: -1
+
+    rotation:
+        d_rotate: 1
+        x: 10
+        y: 10
+        z: 10
+        order: 'xyz'
