@@ -7,7 +7,7 @@ from torchtext.data import BucketIterator
 import sys
 
 
-sys.path.append(r"C:\\Users\\areeb\Downloads\\SignLanguage_DataAugmentation")
+#sys.path.append(r"C:\\Users\\Downloads\\SignLanguage_DataAugmentation")
 
 from torchtext.data import Dataset
 from signjoey.batch import Batch
@@ -100,22 +100,12 @@ def rotate_dataset(data_cfg: dict, rotation_cfg: dict):
         train=False,)
     rotated_dataset_list = []
 
-    # data_iter = make_data_iter(
-    #     dataset,
-    #     batch_size=batch_size,
-    #     batch_type=batch_type,
-    #     shuffle=False,
-    #     train=False,
-    # )
 
 
 
     #for i in range(0,len(raw_dataset.dataset[0].sgn)):
     #print("\nThis is ","th iteration: ",raw_dataset.dataset[1].sgn[0].shape)
-    print("This is ",raw_dataset.__dict__)
 
-    #input() 
-    
     for example in iter(raw_dataset):   
         #print("\n\nThis is dict: \n",example.__dict__)
         #input()
