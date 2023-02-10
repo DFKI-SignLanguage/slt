@@ -31,7 +31,7 @@ ROTATION_CFG_DEFAULT = {
 }
 
 BATCH_TYPE_DEFAULT = 'sentence'
-BATCH_SIZE = 1
+BATCH_SIZE = 32
 
 DATA_CFG = {
     'data_path': "C:\\Users\\areeb\\Downloads\\SignLanguage_DataAugmentation\\",
@@ -94,7 +94,7 @@ def rotate_dataset(data_cfg: dict, rotation_cfg: dict):
     )
 
     raw_dataset = make_data_iter(dataset=raw_dataset,
-        batch_size=32,
+        batch_size=BATCH_SIZE,
         batch_type=BATCH_TYPE_DEFAULT,
         shuffle=False,
         train=False,)
