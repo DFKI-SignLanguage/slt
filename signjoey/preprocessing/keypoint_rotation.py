@@ -3,11 +3,17 @@ import pickle
 import random
 import torch
 from torchtext import data
+from torchtext.data import BucketIterator
+import sys
+
+
+sys.path.append(r"C:\\Users\\areeb\Downloads\\SignLanguage_DataAugmentation")
 
 from torchtext.data import Dataset
 from signjoey.batch import Batch
 from signjoey.data import make_data_iter
 from signjoey.dataset import SignTranslationDataset
+
 
 from signjoey.vocabulary import (
     UNK_TOKEN,
@@ -28,14 +34,14 @@ BATCH_TYPE_DEFAULT = 'sentence'
 BATCH_SIZE = 1
 
 DATA_CFG = {
-    'data_path': '/data/PhoenixKeypointEmbedding',
-    'filename_raw': 'PHOENIX2014T/signjoey.test',
-    'feature_size': '1728'
+    'data_path': "C:\\Users\\areeb\\Downloads\\SignLanguage_DataAugmentation\\",
+    'filename_raw': "phoenix14t.pami0.test",
+    'feature_size': 1728
 }
 
 
 def rotate_dataset(data_cfg: dict, rotation_cfg: dict):
-    data_path = data_cfg.get("data_path", "./data")
+    data_path = data_cfg.get("data_path", "./data") #C:\Users\areeb\Downloads\SignLanguage_DataAugmentation\
     raw_path = os.path.join(data_path, data_cfg["filename_raw"])
     pad_feature_size = data_cfg["feature_size"]
     txt_lowercase = False
@@ -43,6 +49,7 @@ def rotate_dataset(data_cfg: dict, rotation_cfg: dict):
     def tokenize_features(features):
         ft_list = torch.split(features, 1, dim=0)
         return [ft.squeeze() for ft in ft_list]
+
 
     def stack_features(features, something):
         return torch.stack([torch.stack(ft, dim=0) for ft in features], dim=0)
@@ -86,6 +93,11 @@ def rotate_dataset(data_cfg: dict, rotation_cfg: dict):
         fields=(sequence_field, signer_field, sgn_field, gls_field, txt_field),
     )
 
+    raw_dataset = make_data_iter(dataset=raw_dataset,
+        batch_size=32,
+        batch_type=BATCH_TYPE_DEFAULT,
+        shuffle=False,
+        train=False,)
     rotated_dataset_list = []
 
     # data_iter = make_data_iter(
@@ -96,8 +108,17 @@ def rotate_dataset(data_cfg: dict, rotation_cfg: dict):
     #     train=False,
     # )
 
-    for example in iter(raw_dataset):
 
+
+    #for i in range(0,len(raw_dataset.dataset[0].sgn)):
+    #print("\nThis is ","th iteration: ",raw_dataset.dataset[1].sgn[0].shape)
+    print("This is ",raw_dataset.__dict__)
+
+    #input() 
+    
+    for example in iter(raw_dataset):   
+        #print("\n\nThis is dict: \n",example.__dict__)
+        #input()
         dim1, dim2, _ = example.sgn.shape
 
         # bring the data into 3d
